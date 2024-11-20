@@ -187,11 +187,12 @@
 				};
 			};
 			buildConfigurationList = 9E405D8A2CEDFABE00DC0CE6 /* Build configuration list for PBXProject "TodoListUppg4" */;
-			developmentRegion = en;
+			developmentRegion = sv;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
+				sv,
 			);
 			mainGroup = 9E405D862CEDFABE00DC0CE6;
 			minimizedProjectReferenceProxies = 1;

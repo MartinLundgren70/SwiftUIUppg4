@@ -9,53 +9,84 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
+    @Query var todoItems: [TodoItem]
+    @Environment(\.modelContext) private var context
+    @State private var newTaskTitle: String = ""
 
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
+        NavigationView {
+            VStack {
+                HStack {
+                    TextField("Ny uppgift...", text: $newTaskTitle)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                    Button(action: addTask) {
+                        Text("Lägg till")
+                            .padding(.horizontal)
+                            .padding(.vertical, 8)
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
                     }
                 }
-                .onDelete(perform: deleteItems)
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
+                .padding()
+
+                List {
+                    ForEach(sortedTodoItems) { item in
+                        HStack {
+                            Text(item.title)
+                                .strikethrough(item.isDone, color: .gray)
+                                .foregroundColor(item.isDone ? .gray : .black)
+                            Spacer()
+                            if item.isDone {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+                            } else {
+                                Image(systemName: "circle")
+                                    .foregroundColor(.gray)
+                            }
+                        }
+                        .contentShape(Rectangle()) // Gör hela raden klickbar
+                        .onTapGesture {
+                            toggleTask(item)
+                        }
                     }
+                    .onDelete(perform: deleteTask)
                 }
+                .navigationTitle("Att Göra")
             }
-        } detail: {
-            Text("Select an item")
         }
     }
 
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
+    private func addTask() {
+        guard !newTaskTitle.isEmpty else { return }
+        let newItem = TodoItem(title: newTaskTitle)
+        context.insert(newItem)
+        try? context.save()
+        newTaskTitle = ""
     }
 
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
+    private func toggleTask(_ item: TodoItem) {
+        item.isDone.toggle()
+        try? context.save()
+    }
+
+    private func deleteTask(at offsets: IndexSet) {
+        // Mappa tillbaka till original index
+        let itemsToDelete = offsets.map { sortedTodoItems[$0] }
+        
+        for item in itemsToDelete {
+            context.delete(item) // Delete the actual item from the model
         }
+        try? context.save()
+    }
+
+    var sortedTodoItems: [TodoItem] {
+        todoItems.sorted { !$0.isDone && $1.isDone }
     }
 }
 
 #Preview {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+        .modelContainer(for: TodoItem.self, inMemory: true)
 }
+
